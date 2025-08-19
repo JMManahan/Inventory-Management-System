@@ -1265,6 +1265,52 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+
+
+        // ===== JSONBin Config =====
+const JSONBIN_API_KEY = "$2a$10$Rv2wnWadGLskU/x/QtjnquhNNEmTlWhIHJrCQKjuv88MclPTWKCzq"; // Replace with your API key
+const JSONBIN_BIN_ID = "689e1b73ae596e708fca0f96";   // Replace with your Bin ID
+
+async function loadDataFromCloud() {
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+            headers: { "X-Master-Key": JSONBIN_API_KEY }
+        });
+        const data = await res.json();
+        if (data && data.record && data.record.inventoryData) {
+            inventoryData = data.record.inventoryData;
+            filteredData = [...inventoryData];
+            loadInventoryTable();
+            console.log("Data loaded from cloud");
+        }
+    } catch (err) {
+        console.error("Error loading from cloud:", err);
+    }
+}
+
+async function saveDataToCloud() {
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Master-Key": JSONBIN_API_KEY
+            },
+            body: JSON.stringify({ inventoryData })
+        });
+        const data = await res.json();
+        console.log("Data saved to cloud", data);
+        showAlert("Changes saved to cloud!", "success");
+    } catch (err) {
+        console.error("Error saving to cloud:", err);
+        showAlert("Error saving to cloud!", "danger");
+    }
+}
+
+loadDataFromCloud();
+
+
+
         // User credentials with permissions
         const users = {
             'admin': { 
@@ -2776,27 +2822,10 @@
         }
 
         // Save/Load functions
-        function saveAllData() {
-            try {
-                const dataToSave = {
-                    inventoryData: inventoryData,
-                    nextId: nextId,
-                    lastSaved: new Date().toISOString()
-                };
-                
-                localStorage.setItem('reliableOPCData', JSON.stringify(dataToSave));
-                
-                const indicator = document.getElementById('lastSavedIndicator');
-                if (indicator) {
-                    indicator.innerHTML = '<i class="fas fa-check-circle text-success"></i> Saved at ' + new Date().toLocaleTimeString();
-                }
-                
-                showAlert('All data saved successfully!', 'success');
-            } catch (error) {
-                console.error('Error saving data:', error);
-                showAlert('Error saving data. Please try again.', 'danger');
-            }
-        }
+function saveAllData() {
+    saveDataToCloud();
+}
+
 
         function loadAllData() {
             try {
