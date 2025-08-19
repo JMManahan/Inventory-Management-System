@@ -1271,6 +1271,12 @@
 const JSONBIN_API_KEY = "$2a$10$Rv2wnWadGLskU/x/QtjnquhNNEmTlWhIHJrCQKjuv88MclPTWKCzq"; // Replace with your API key
 const JSONBIN_BIN_ID = "689e1b73ae596e708fca0f96";   // Replace with your Bin ID
 
+    // ===== Existing Variables =====
+    let currentUser = null;
+    let inventoryData = [];  // start empty, will load from cloud
+    let filteredData = [];
+    let nextId = 1;
+    
 async function loadDataFromCloud() {
     try {
         const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
@@ -1283,31 +1289,43 @@ async function loadDataFromCloud() {
             loadInventoryTable();
             console.log("Data loaded from cloud");
         }
-    } catch (err) {
-        console.error("Error loading from cloud:", err);
+      } catch (err) {
+        console.error("❌ Error loading from cloud:", err);
+        // fallback to localStorage
+        const local = localStorage.getItem("inventoryData");
+        if (local) {
+          inventoryData = JSON.parse(local);
+          filteredData = [...inventoryData];
+          loadInventoryTable();
+          console.log("📦 Loaded from local backup");
+        }
+      }
     }
-}
 
-async function saveDataToCloud() {
-    try {
+    async function saveDataToCloud() {
+      try {
         const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Master-Key": JSONBIN_API_KEY
-            },
-            body: JSON.stringify({ inventoryData })
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Master-Key": JSONBIN_API_KEY
+          },
+          body: JSON.stringify({ inventoryData })
         });
         const data = await res.json();
-        console.log("Data saved to cloud", data);
+        console.log("✅ Data saved to cloud", data);
+        localStorage.setItem("inventoryData", JSON.stringify(inventoryData)); // backup
         showAlert("Changes saved to cloud!", "success");
-    } catch (err) {
-        console.error("Error saving to cloud:", err);
-        showAlert("Error saving to cloud!", "danger");
+      } catch (err) {
+        console.error("❌ Error saving to cloud:", err);
+        showAlert("Error saving to cloud! Check console.", "danger");
+      }
     }
-}
 
-loadDataFromCloud();
+    // ===== Override Save Function =====
+    function saveAllData() {
+      saveDataToCloud();
+    }
 
 
 
@@ -1332,75 +1350,6 @@ loadDataFromCloud();
                 permissions: ['view']
             }
         };
-
-        let currentUser = null;
-
-        // Sample inventory data
-        let inventoryData = [
-            {
-                id: 1,
-                type: 'Machine',
-                brand: 'Brainlab',
-                itemName: 'X-Ray Machine Model A',
-                lotSerial: 'XR001-2024',
-                refNo: 'REF-XR-001',
-                airwaybill: 'AWB-12345',
-                quantity: 1,
-                qtyBalance: 1,
-                storedPlace: 'Warehouse A - Section 1',
-                status: 'In Stock',
-                stockDate: '2024-01-15',
-                pullOutHistory: [],
-                remarksHistory: [
-                    { date: '2024-01-15', remark: 'Initial stock entry', user: 'Admin' }
-                ]
-            },
-            {
-                id: 2,
-                type: 'Disposable',
-                brand: 'Medoc',
-                itemName: 'Surgical Gloves (Box)',
-                lotSerial: 'SG-LOT-2024-001',
-                refNo: 'REF-SG-001',
-                airwaybill: 'AWB-67890',
-                quantity: 100,
-                qtyBalance: 75,
-                storedPlace: 'Storage Room B - Shelf 3',
-                status: 'In Stock',
-                stockDate: '2024-01-15',
-                pullOutHistory: [
-                    { date: '2024-01-20', quantity: 25, remark: 'Emergency surgery supplies', user: 'Dr. Smith' }
-                ],
-                remarksHistory: [
-                    { date: '2024-01-15', remark: 'Initial stock - 100 boxes received', user: 'Admin' },
-                    { date: '2024-01-20', remark: 'Pulled out 25 boxes for emergency', user: 'Dr. Smith' }
-                ]
-            },
-            {
-                id: 3,
-                type: 'Machine',
-                brand: 'Inomed',
-                itemName: 'Ultrasound Scanner',
-                lotSerial: 'US-2024-002',
-                refNo: 'REF-US-002',
-                airwaybill: 'AWB-11111',
-                quantity: 1,
-                qtyBalance: 0,
-                storedPlace: 'Operating Room 3',
-                status: 'Pulled Out',
-                stockDate: '2024-01-10',
-                pullOutHistory: [
-                    { date: '2024-01-25', quantity: 1, remark: 'Deployed to OR-3 for cardiac procedures', user: 'Tech Team' }
-                ],
-                remarksHistory: [
-                    { date: '2024-01-10', remark: 'New ultrasound scanner received', user: 'Admin' },
-                    { date: '2024-01-25', remark: 'Deployed to operating room', user: 'Tech Team' }
-                ]
-            }
-        ];
-
-        let nextId = 4;
-        let filteredData = [...inventoryData];
 
         // Brand configuration
         const brandConfig = {
@@ -3638,6 +3587,11 @@ function saveAllData() {
                 showLoginScreen();
             }
         });
+
+            window.addEventListener("DOMContentLoaded", () => {
+      loadDataFromCloud();
+    });
+    
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96f143a5935d8d02',t:'MTc1NTE4MzAyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
